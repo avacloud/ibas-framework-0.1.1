@@ -1,5 +1,6 @@
 package org.colorcoding.ibas.bobas.db;
 
+import org.colorcoding.ibas.bobas.bo.BOException;
 import org.colorcoding.ibas.bobas.common.ICriteria;
 import org.colorcoding.ibas.bobas.common.ISqlQuery;
 import org.colorcoding.ibas.bobas.common.ISqlStoredProcedure;
@@ -178,4 +179,15 @@ public interface IBOAdapter4Db {
 	 */
 	ISqlQuery parseSqlQuery(ISqlStoredProcedure sp) throws BOParseException;
 
+	/**
+	 * 使用系列编号
+	 * 
+	 * @param bo
+	 *            业务对象
+	 * @param command
+	 *            数据库命令
+	 * @return 系列编号
+	 * @throws BOException
+	 */
+	KeyValue useSeriesKey(IBusinessObjectBase bo, IDbCommand command) throws BOParseException;
 }

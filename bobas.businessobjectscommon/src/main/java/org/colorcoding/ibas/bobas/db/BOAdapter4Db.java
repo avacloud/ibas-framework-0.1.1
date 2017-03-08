@@ -9,6 +9,7 @@ import org.colorcoding.ibas.bobas.bo.IBODocumentLine;
 import org.colorcoding.ibas.bobas.bo.IBOLine;
 import org.colorcoding.ibas.bobas.bo.IBOMasterData;
 import org.colorcoding.ibas.bobas.bo.IBOMasterDataLine;
+import org.colorcoding.ibas.bobas.bo.IBOSeriesKey;
 import org.colorcoding.ibas.bobas.bo.IBOSimple;
 import org.colorcoding.ibas.bobas.bo.IBOSimpleLine;
 import org.colorcoding.ibas.bobas.bo.IBOStorageTag;
@@ -1187,6 +1188,73 @@ public abstract class BOAdapter4Db implements IBOAdapter4Db {
 					sqlScripts.groupStoredProcedure(sp.getName(), sp.getParameters().toArray(new KeyValue[] {})));
 		} catch (Exception e) {
 			throw new BOParseException(e);
+		}
+	}
+
+	@Override
+	public KeyValue useSeriesKey(IBusinessObjectBase bo, IDbCommand command) throws BOParseException {
+		if (!(bo instanceof IBOSeriesKey))
+			return null;
+		IBOSeriesKey seriesKey = (IBOSeriesKey) bo;
+		KeyValue key = this.parseSeriesKey(seriesKey, command);
+		if (key == null) {
+			return null;
+		}
+		this.updateSeriesKeyRecords(seriesKey, 1, command);
+		this.applySeriesKey(bo, key);
+		return key;
+	}
+
+	protected void updateSeriesKeyRecords(IBOSeriesKey bo, int addValue, IDbCommand command) throws BOParseException {
+		try {
+			ISqlScripts sqlScripts = this.getSqlScripts();
+			if (sqlScripts == null) {
+				throw new SqlScriptsException(i18n.prop("msg_bobas_invaild_sql_scripts"));
+			}
+			// 更新数据记录
+			command.executeUpdate(sqlScripts.getUpdateBOSeriesKeyScript(bo.getObjectCode(), bo.getSeries(), addValue));
+		} catch (Exception e) {
+			throw new BOParseException(e);
+		}
+	}
+
+	protected KeyValue parseSeriesKey(IBOSeriesKey bo, IDbCommand command) throws BOParseException {
+		try {
+			ISqlScripts sqlScripts = this.getSqlScripts();
+			if (sqlScripts == null) {
+				throw new SqlScriptsException(i18n.prop("msg_bobas_invaild_sql_scripts"));
+			}
+			IDbDataReader reader = null;
+			if (bo.getSeries() <= 0) {
+				// 未设置系列，获取默认
+				reader = command.executeReader(sqlScripts.getBODefalutSeriesQuery(bo.getObjectCode()));
+				if (reader.next()) {
+					bo.setSeries(reader.getInt(1));
+				}
+				reader.close();
+			}
+			KeyValue key = null;
+			reader = command.executeReader(sqlScripts.getBOSeriesQuery(bo.getObjectCode(), bo.getSeries()));
+			if (reader.next()) {
+				key = new KeyValue(reader.getString(2), reader.getInt(1));
+			}
+			reader.close();
+			return key;
+		} catch (Exception e) {
+			throw new BOParseException(e);
+		}
+	}
+
+	public void applySeriesKey(IBusinessObjectBase bo, KeyValue key) {
+		if (bo instanceof IBOSeriesKey) {
+			IBOSeriesKey seriesKey = (IBOSeriesKey) bo;
+			if (key.key != null && !key.key.isEmpty()) {
+				// 存在模块，则格式化编号
+				seriesKey.setSeriesValue(String.format(key.key, key.value));
+			} else {
+				// 直接赋值编号
+				seriesKey.setSeriesValue(key.value);
+			}
 		}
 	}
 }
