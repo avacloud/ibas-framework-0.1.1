@@ -4,7 +4,7 @@ import org.colorcoding.ibas.bobas.bo.IBusinessObject;
 import org.colorcoding.ibas.bobas.common.ICriteria;
 import org.colorcoding.ibas.bobas.common.OperationResult;
 import org.colorcoding.ibas.bobas.core.BOFactory;
-import org.colorcoding.ibas.bobas.core.BOFactoryException;
+import org.colorcoding.ibas.bobas.core.IBORepository;
 import org.colorcoding.ibas.bobas.core.RepositoryException;
 import org.colorcoding.ibas.bobas.i18n.i18n;
 import org.colorcoding.ibas.bobas.repository.BORepositoryLogicService;
@@ -22,6 +22,11 @@ class ApprovalProcessRepository extends BORepositoryLogicService {
 		this.setRefetchAfterSave(false);// 保存后不查询数据
 		this.setUseCache(false); // 不使用缓存
 		this.setCheckApprovalProcess(false);// 此业务仓库不检查审批流程
+	}
+
+	public ApprovalProcessRepository(IBORepository repository) {
+		this();
+		super.setRepository(repository);
 	}
 
 	public boolean openRepository() throws RepositoryException {
@@ -56,7 +61,7 @@ class ApprovalProcessRepository extends BORepositoryLogicService {
 			// 加载命名空间的类
 			Class<?> boClass = BOFactory.create().getBOClass(criteria.getBusinessObjectCode());
 			if (boClass == null) {
-				throw new BOFactoryException(
+				throw new ClassNotFoundException(
 						i18n.prop("msg_bobas_not_found_bo_class", criteria.getBusinessObjectCode()));
 			}
 			@SuppressWarnings("unchecked")

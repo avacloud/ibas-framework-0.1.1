@@ -38,4 +38,8 @@ public final class MyConsts {
 	 */
 	public static final String NAMESPACE_BOBAS_CONFIGURATION = "http://colorcoding.org/ibas/bobas/configuration";
 
+	/**
+	 * 变量命名模板，${%s}
+	 */
+	public static final String VARIABLE_NAMING_TEMPLATE = "${%s}";
 }

@@ -23,6 +23,7 @@ import org.colorcoding.ibas.bobas.organization.IOrganizationManager;
 import org.colorcoding.ibas.bobas.organization.IUser;
 import org.colorcoding.ibas.bobas.organization.InvalidAuthorizationException;
 import org.colorcoding.ibas.bobas.organization.OrganizationFactory;
+import org.colorcoding.ibas.bobas.repository.IBORepository4DbReadonly;
 
 /**
  * 审批流程
@@ -162,9 +163,12 @@ public abstract class ApprovalProcess implements IApprovalProcess {
 		this.restore();// 重置初始状态
 		for (IApprovalProcessStep item : this.getProcessSteps()) {
 			ApprovalProcessStep stepItem = (ApprovalProcessStep) item;
-			ApprovalDataJudgmentLinks judgmentLinks = new ApprovalDataJudgmentLinks();
-			judgmentLinks.parsingConditions(stepItem.getConditions());
 			try {
+				ApprovalDataJudgmentLinks judgmentLinks = new ApprovalDataJudgmentLinks();
+				if (this.getRepository() instanceof IBORepository4DbReadonly) {
+					judgmentLinks.setRepository((IBORepository4DbReadonly) this.getRepository());
+				}
+				judgmentLinks.parsingConditions(stepItem.getConditions());
 				boolean done = judgmentLinks.judge((IBusinessObjectBase) data);
 				if (done) {
 					// 满足条件，开启此步骤
@@ -178,7 +182,7 @@ public abstract class ApprovalProcess implements IApprovalProcess {
 					// 跳过此步骤
 					stepItem.skip();
 				}
-			} catch (JudmentOperationException | UnlogicalException e) {
+			} catch (JudmentOperationException | ApprovalProcessException e) {
 				RuntimeLog.log(e);
 				return false;
 			}
@@ -201,6 +205,9 @@ public abstract class ApprovalProcess implements IApprovalProcess {
 			}
 			ApprovalProcessStep stepItem = (ApprovalProcessStep) item;
 			ApprovalDataJudgmentLinks judgmentLinks = new ApprovalDataJudgmentLinks();
+			if (this.getRepository() instanceof IBORepository4DbReadonly) {
+				judgmentLinks.setRepository((IBORepository4DbReadonly) this.getRepository());
+			}
 			judgmentLinks.parsingConditions(stepItem.getConditions());
 			boolean done = true;
 			if (judgmentLinks.getJudgmentItems() != null && judgmentLinks.getJudgmentItems().length > 0) {
@@ -376,9 +383,6 @@ public abstract class ApprovalProcess implements IApprovalProcess {
 	private IBORepository repository;
 
 	protected final IBORepository getRepository() throws ApprovalProcessException {
-		if (this.repository == null) {
-			throw new ApprovalProcessException(i18n.prop("msg_bobas_invaild_bo_repository"));
-		}
 		return repository;
 	}
 
@@ -406,6 +410,9 @@ public abstract class ApprovalProcess implements IApprovalProcess {
 			if (criteria == null || criteria.getConditions().size() == 0) {
 				throw new ApprovalException(i18n.prop("msg_bobas_approval_data_identifiers_unrecognizable",
 						this.getApprovalData().getIdentifiers()));
+			}
+			if (this.getRepository() == null) {
+				throw new ApprovalProcessException(i18n.prop("msg_bobas_invaild_bo_repository"));
 			}
 			ApprovalProcessRepository apRepository = new ApprovalProcessRepository();
 			apRepository.setRepository(this.getRepository());
@@ -440,6 +447,9 @@ public abstract class ApprovalProcess implements IApprovalProcess {
 	public void save() throws ApprovalProcessException {
 		boolean myTrans = false;
 		boolean myOpend = false;
+		if (this.getRepository() == null) {
+			throw new ApprovalProcessException(i18n.prop("msg_bobas_invaild_bo_repository"));
+		}
 		ApprovalProcessRepository apRepository = null;
 		try {
 			apRepository = new ApprovalProcessRepository();
